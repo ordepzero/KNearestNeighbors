@@ -23,7 +23,9 @@ public class KNearestNeighbors {
     private Integer NUMERO_REGISTROS = 2000;
     private String ARQUIVO = "train";
     private String FILENAME = ARQUIVO+"_"+NUMERO_REGISTROS+"_K"+CONSTANTE_K+".txt";
-    
+    private int correct;
+    private int nComparations;
+    public static int nFolds = 5;
     
     public static void main(String[] args) {
         // TODO code application logic here
@@ -32,6 +34,13 @@ public class KNearestNeighbors {
         
         List<List<String>> trainFile = FileUtil.readFile(trainFileName, separator);
         
+        List<List<List<String>>> folds = new ArrayList<>();
+        int nSamples = trainFile.size()/nFolds;
+        int begin = 0;
+        int end = nSamples;
+        for(int i = 0; i < nFolds; i++){
+            folds.add(trainFile.subList(nSamples*i,nSamples*(i+1)));
+        }
         
         KNearestNeighbors knn = new KNearestNeighbors(1,false,"submissao.txt");
         //FileUtil.writeFile("ID,PredictedProb",knn.FILENAME);
@@ -39,7 +48,18 @@ public class KNearestNeighbors {
         
         //System.out.println(trainFile.get(0));
         
-        knn.calculateDistances(trainFile.subList(1, 20000), trainFile.subList(20000, 26730));
+        //knn.calculateDistances(trainFile.subList(1, 20000), trainFile.subList(20000, 26730));
+        
+        List<List<String>> newTrainFile;
+        for(int i = 0; i < nFolds; i++){
+            newTrainFile = new ArrayList<>();
+            for(int j = 0; j < nFolds; j++){
+                if(i != j){
+                    newTrainFile.addAll(folds.get(j));
+                }
+            }
+            knn.calculateDistances(newTrainFile, folds.get(i));
+        }        
         
         System.out.println("FIM");
         //FileUtil.showFile(trainFile);
@@ -54,11 +74,13 @@ public class KNearestNeighbors {
     }
     
     private List<List<String>> calculateDistances(List<List<String>> train,List<List<String>> testes){
-    
+        
+        correct = 0;
+        nComparations = 0;
         for(List<String> teste : testes){
             teste.add(findKNearestNeighbors(train,teste,CONSTANTE_K,CONSIDERAR_PAR_PRESENTE));
         }
-        
+        System.out.println("Acuracia: "+correct/(nComparations*1.0));
         return testes;
     }
     
@@ -107,6 +129,11 @@ public class KNearestNeighbors {
         //compared.get(1) -> target
 //        FileUtil.writeFile(target+"\t"+compared.get(0)+"\t"+
 //                compared.get(1)+"\t"+distance,this.FILENAME);
+        
+        nComparations++;
+        if(compared.get(1).equals(target)){
+            correct++;
+        }
         FileUtil.writeFile(compared.get(1)+","+target,this.FILENAME);
         return target;
     }
